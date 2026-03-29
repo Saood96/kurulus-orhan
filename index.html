@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZS Official Player | Original Cloudflare Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #030617 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* --- CLOUDFLARE SECURITY OVERLAY --- */
+        .security-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        .security-box {
+            background: #18181b; 
+            border: 1px solid #27272a;
+            border-radius: 12px;
+            padding: 40px 30px;
+            text-align: center;
+            max-width: 420px;
+            width: 90%;
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .lock-icon {
+            background: #1e293b;
+            width: 72px; height: 72px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .lock-icon svg {
+            width: 32px; height: 32px;
+            stroke: #3b82f6; 
+            fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
+        }
+
+        .security-box h2 {
+            font-size: 24px; font-weight: 600; margin-bottom: 12px; color: #f4f4f5; letter-spacing: -0.5px;
+        }
+
+        .security-box p {
+            font-size: 15px; color: #a1a1aa; margin-bottom: 30px; line-height: 1.5;
+        }
+
+        /* --- PLAYER STYLES --- */
+        .container {
+            width: 95%;
+            max-width: 1100px;
+            position: relative;
+            z-index: 10;
+            display: none; /* Hidden until verified */
+        }
+
+        .player-wrapper {
+            position: relative;
+            border-radius: 24px;
+            overflow: hidden;
+            background: #000;
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), inset 0 0 15px rgba(212, 175, 55, 0.1);
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+
+        .player-wrapper:hover {
+            border-color: rgba(212, 175, 55, 0.5);
+        }
+
+        .video-logo {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 135px;
+            z-index: 150;
+            pointer-events: none;
+            mix-blend-mode: multiply;
+            filter: contrast(1.2) brightness(1.1);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .player-wrapper.show-controls .video-logo {
+            opacity: 1;
+        }
+
+        video {
+            width: 100%;
+            display: block;
+            aspect-ratio: 16 / 9;
+            background: #000;
+            object-fit: cover; /* YEH ADD KIYA HAI TAAKI THUMBNAIL KHARAB NA DIKHE */
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.8) 50%, transparent 100%);
+            padding: 30px 25px 20px;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+            opacity: 0;
+            z-index: 101;
+        }
+
+        .player-wrapper.show-controls .controls {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 7px;
+            background: rgba(255, 255, 255, 0.1); 
+            border-radius: 10px;
+            margin-bottom: 20px;
+            cursor: pointer;
+            position: relative;
+            transition: height 0.2s ease;
+        }
+
+        .progress-container:hover {
+            height: 9px;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #D4AF37 0%, #f1c40f 100%);
+            border-radius: 10px;
+            width: 0%;
+            position: relative;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.7);
+        }
+
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 12px;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: rgba(212, 175, 55, 0.9);
+            font-size: 18px;
+            backdrop-filter: blur(10px);
+            text-decoration: none; 
+        }
+
+        .btn:hover {
+            background: rgba(212, 175, 55, 0.15);
+            border-color: rgba(212, 175, 55, 0.5);
+            transform: scale(1.08);
+            color: #fff;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+        }
+
+        .time-display {
+            color: rgba(212, 175, 55, 0.9);
+            font-size: 14px;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 1px;
+            min-width: 110px;
+        }
+
+        .spacer {
+            flex: 1;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 50;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 65px;
+            height: 65px;
+            border: 5px solid rgba(212, 175, 55, 0.1);
+            border-top: 5px solid #D4AF37;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .pause-ring-effect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.5);
+            width: 150px;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .pause-ring-effect.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .pause-ring-effect svg {
+            width: 100%;
+            height: 100%;
+            fill: none;
+            stroke: #D4AF37;
+            stroke-width: 3;
+            filter: drop-shadow(0 0 15px rgba(212, 175, 55, 1));
+        }
+
+        .pause-ring-effect .outer-ring {
+            stroke-dasharray: 400;
+            stroke-dashoffset: 400;
+            animation: ringDraw 1.5s forwards ease-out;
+            opacity: 0.8;
+        }
+
+        .pause-ring-effect .inner-ring {
+            stroke-dasharray: 300;
+            stroke-dashoffset: 300;
+            animation: ringDrawInner 1.5s forwards ease-out 0.2s;
+            opacity: 0.6;
+        }
+
+        @keyframes ringDraw { to { stroke-dashoffset: 0; } }
+        @keyframes ringDrawInner { to { stroke-dashoffset: 0; } }
+
+        @media (max-width: 768px) {
+            .video-logo { width: 105px; }
+            .time-display { font-size: 12px; min-width: 90px; }
+            .controls-row { gap: 10px; }
+            .pause-ring-effect { width: 100px; height: 100px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="securityOverlay" class="security-overlay">
+        <div class="security-box">
+            <div class="lock-icon">
+                <svg viewBox="0 0 24 24">
+                    <rect x="5" y="11" width="14" height="10" rx="2" ry="2"></rect>
+                    <path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
+                </svg>
+            </div>
+            <h2>Security Check</h2>
+            <p>Verify you are human to access this secure content.</p>
+            
+            <div class="cf-turnstile" data-sitekey="0x4AAAAAACxoimIN2VZKXQHA" data-theme="dark" data-callback="onCloudflareVerified"></div>
+
+        </div>
+    </div>
+
+
+    <div class="container" id="mainContainer">
+        <div class="player-wrapper show-controls" id="playerWrapper">
+            
+            <img src="https://files.catbox.moe/q1dhlp.jpg" alt="ZS Logo" class="video-logo">
+
+            <div class="loading">
+                <div class="spinner"></div>
+            </div>
+
+            <div class="pause-ring-effect" id="pauseEffect">
+                <svg viewBox="0 0 100 100">
+                    <rect x="36" y="32" width="10" height="36" rx="2" fill="#D4AF37"/>
+                    <rect x="54" y="32" width="10" height="36" rx="2" fill="#D4AF37"/>
+                    <circle class="outer-ring" cx="50" cy="50" r="46"/>
+                    <circle class="inner-ring" cx="50" cy="50" r="40"/>
+                </svg>
+            </div>
+
+            <video id="video" playsinline preload="auto" poster="https://files.catbox.moe/v33t1o.jpg">
+                <source src="https://hugh.cdn.rumble.cloud/video/fww1/b7/s8/2/C/h/H/-/ChH-z.gaa.tar?r_file=chunklist.m3u8&r_type=application%2Fvnd.apple.mpegurl&r_range=223097344-223105718" type="video/mp4">
+            </video>
+            <div class="controls" id="controls">
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+
+                <div class="controls-row">
+                    <button class="btn btn-play" id="playBtn">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                    </button>
+
+                    <button class="btn" id="rewindBtn" title="Rewind 5s">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="1 4 1 10 7 10"></polyline>
+                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                        </svg>
+                    </button>
+
+                    <button class="btn" id="forwardBtn" title="Forward 5s">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                        </svg>
+                    </button>
+
+                    <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
+
+                    <div class="spacer"></div>
+
+                    <a href="https://t.me/saoodofficial" target="_blank" class="btn" title="Join Telegram" onclick="event.stopPropagation()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </a>
+
+                    <button class="btn" id="muteBtn" title="Mute/Unmute (M)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                        </svg>
+                    </button>
+
+                    <button class="btn" id="fullscreenBtn" title="Fullscreen (F)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const securityOverlay = document.getElementById('securityOverlay');
+        const mainContainer = document.getElementById('mainContainer');
+        const video = document.getElementById('video');
+        
+        // --- REAL CLOUDFLARE CALLBACK FUNCTION ---
+        function onCloudflareVerified(token) {
+            // Jab original verification pass ho jayegi tab yeh function chalega
+            setTimeout(() => {
+                securityOverlay.style.opacity = '0';
+                setTimeout(() => {
+                    securityOverlay.style.display = 'none';
+                    mainContainer.style.display = 'block';
+                }, 500); 
+            }, 800); 
+        }
+
+        // --- VIDEO PLAYER LOGIC ---
+        const playBtn = document.getElementById('playBtn');
+        const rewindBtn = document.getElementById('rewindBtn');
+        const forwardBtn = document.getElementById('forwardBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const muteBtn = document.getElementById('muteBtn');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const loading = document.querySelector('.loading');
+        const playerWrapper = document.getElementById('playerWrapper');
+        const pauseEffect = document.getElementById('pauseEffect');
+
+        let hideControlsTimeout;
+
+        function fastSeekOptimized(amount) {
+            video.currentTime += amount;
+            if (video.paused) {
+                video.play().then(() => video.pause()).catch(() => {});
+            }
+        }
+
+        function togglePlay() {
+            if (video.paused) {
+                video.play().then(() => {
+                    playBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>';
+                    pauseEffect.classList.remove('active');
+                    showControls();
+                });
+            } else {
+                video.pause();
+                playBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+                pauseEffect.classList.add('active');
+                showControls();
+            }
+        }
+
+        function showControls() {
+            playerWrapper.classList.add('show-controls');
+            clearTimeout(hideControlsTimeout);
+            if (!video.paused) {
+                hideControlsTimeout = setTimeout(() => {
+                    playerWrapper.classList.remove('show-controls');
+                }, 5000);
+            }
+        }
+
+        playerWrapper.addEventListener('mousemove', showControls);
+        playerWrapper.addEventListener('mouseenter', showControls);
+        playBtn.addEventListener('click', togglePlay);
+        video.addEventListener('click', togglePlay);
+
+        video.addEventListener('timeupdate', () => {
+            const progress = (video.currentTime / video.duration) * 100;
+            progressBar.style.width = progress + '%';
+            updateTimeDisplay();
+        });
+
+        progressContainer.addEventListener('click', (e) => {
+            const rect = progressContainer.getBoundingClientRect();
+            const pos = (e.clientX - rect.left) / rect.width;
+            video.currentTime = pos * video.duration;
+            resetControlsTimeoutOnAction();
+        });
+
+        rewindBtn.addEventListener('click', (e) => { e.stopPropagation(); fastSeekOptimized(-5); resetControlsTimeoutOnAction(); });
+        forwardBtn.addEventListener('click', (e) => { e.stopPropagation(); fastSeekOptimized(5); resetControlsTimeoutOnAction(); });
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                playerWrapper.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        fullscreenBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFullscreen(); });
+
+        // Mute Logic
+        muteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            video.muted = !video.muted;
+            if (video.muted) {
+                muteBtn.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 5L6 9H2V15H6L11 19V5Z"></path>
+                        <line x1="23" y1="9" x2="17" y2="15"></line>
+                        <line x1="17" y1="9" x2="23" y2="15"></line>
+                    </svg>`;
+            } else {
+                muteBtn.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>`;
+            }
+            resetControlsTimeoutOnAction();
+        });
+
+        function formatTime(seconds) {
+            if (isNaN(seconds) || seconds < 0) return '00:00';
+            
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+
+            const mStr = m.toString().padStart(2, '0');
+            const sStr = s.toString().padStart(2, '0');
+
+            if (h > 0) {
+                return `${h.toString().padStart(2, '0')}:${mStr}:${sStr}`;
+            } else {
+                return `${mStr}:${sStr}`;
+            }
+        }
+
+        function updateTimeDisplay() {
+            const dur = video.duration || 0;
+            const cur = video.currentTime;
+            
+            const durFormatted = formatTime(dur);
+            let curFormatted = formatTime(cur);
+
+            if (dur >= 3600 && cur < 3600) {
+                const mStr = Math.floor((cur % 3600) / 60).toString().padStart(2, '0');
+                const sStr = Math.floor(cur % 60).toString().padStart(2, '0');
+                curFormatted = `00:${mStr}:${sStr}`;
+            }
+
+            timeDisplay.textContent = `${curFormatted} / ${durFormatted}`;
+        }
+
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            
+            if (mainContainer.style.display !== 'block') return;
+
+            if (key === 'k' || key === ' ' || e.code === 'Space') { 
+                e.preventDefault(); 
+                togglePlay(); 
+            }
+            else if (key === 'arrowleft' || e.code === 'ArrowLeft') {
+                fastSeekOptimized(-5);
+            }
+            else if (key === 'arrowright' || e.code === 'ArrowRight') {
+                fastSeekOptimized(5);
+            }
+            else if (key === 'f' || e.code === 'KeyF') {
+                toggleFullscreen();
+            }
+            else if (key === 'm' || e.code === 'KeyM') {
+                muteBtn.click(); 
+            }
+        });
+
+        video.addEventListener('waiting', () => loading.classList.add('active'));
+        video.addEventListener('canplay', () => loading.classList.remove('active'));
+
+        function resetControlsTimeoutOnAction() {
+            if (!video.paused) {
+                playerWrapper.classList.add('show-controls');
+                clearTimeout(hideControlsTimeout);
+                hideControlsTimeout = setTimeout(() => {
+                    playerWrapper.classList.remove('show-controls');
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>
